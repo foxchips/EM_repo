@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="WGSimDev64" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<MakeCommands>
+			<Build command="" />
+			<CompileFile command="" />
+			<Clean command="" />
+			<DistClean command="" />
+			<AskRebuildNeeded command="" />
+			<SilentBuild command=" &gt; $(CMD_NULL)" />
+		</MakeCommands>
+		<Build>
+			<Target title="Debug">
+				<Option output="WGSim64/WGSimDev64" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="WGSim64" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="WGArgsSpectrumWork1.m Test" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DWG_SINGLETHREAD" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="WGSim64/WGSimDev64" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="WGSim64" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="WGArgsSpectrumWork1.m Test" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-std=c++11" />
+		</Compiler>
+		<Linker>
+			<Add option="-pthread" />
+		</Linker>
+		<ExtraCommands>
+			<Add after="./buildwin64.sh" />
+		</ExtraCommands>
+		<Unit filename="Tracer.cpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
