@@ -1,0 +1,65 @@
+"""Inverse design of a photonic array for directional emission in the far field"""
+
+import numpy as np
+from scipy.optimize import minimize
+from scipy.special import jv
+from matplotlib import pyplot as plt
+
+# Define the function to optimize
+def objective(x, wavelengths, n_eff, a, L):
+    """
+    x: array of design variables (e.g., waveguide widths)
+    wavelengths: array of operating wavelengths (in microns)
+    n_eff: effective refractive index of waveguide
+    a: lattice constant of the photonic array (in microns)
+    L: length of the photonic array (in microns)
+    """
+    # Calculate the effective index of the waveguide array
+    n_eff_eff = np.sum(x) / a * n_eff
+    
+    # Calculate the Fourier coefficients of the radiated fields
+    m = np.arange(-10, 11)
+    u = np.linspace(-1, 1, 1001)
+    U, M = np.meshgrid(u, m)
+    f = np.sum(np.exp(1j * 2 * np.pi * M * u) * jv(M, 2 * np.pi * a / wavelengths[:, None] * np.sqrt(n_eff_eff ** 2 - u ** 2)), axis=1)
+    c = np.real(np.fft.fftshift(np.fft.ifft(f))) / (2 * L)
+    
+    # Calculate the far-field radiation pattern
+    theta = np.linspace(0, np.pi, 1001)
+    ff = np.sum(np.exp(1j * 2 * np.pi * np.sin(theta) * np.arange(len(x)) * a / wavelengths[:, None]) * c[:, None], axis=0)
+    ff /= np.max(np.abs(ff))
+    
+    # Return the negative of the maximum radiation in the forward direction (since we are minimizing)
+    return -np.abs(ff[0]) ** 2
+
+# Define the initial design variables (e.g., waveguide widths)
+x0 = np.array([1, 1, 1, 1, 1])
+
+# Define the array of operating wavelengths (in microns)
+wavelengths = np.linspace(1.5, 1.6, 11)
+
+# Define the effective refractive index of the waveguide
+n_eff = 3.2
+
+# Define the lattice constant of the photonic array (in microns)
+a = 1.0
+
+# Define the length of the photonic array (in microns)
+L = 10.0
+
+# Minimize the objective function
+result = minimize(objective, x0, args=(wavelengths, n_eff, a, L))
+
+# Print the optimized design variables
+print("Optimized design variables:")
+print(result.x)
+
+# Calculate the far-field radiation pattern using the optimized design variables
+n_eff_eff = np.sum(result.x) / a * n_eff
+m = np.arange(-10, 11)
+u = np.linspace(-1, 1, 1001)
+U, M = np.meshgrid(u, m)
+f = np.sum(np.exp(1j * 2 * np.pi * M * u) * jv(M, 2 * np.pi * a / wavelengths[:, None] * np.sqrt(n_eff_eff ** 2 - u ** 2)), axis=1)
+c = np.real(np.fft.fftshift(np.fft.ifft(f)))
+
+

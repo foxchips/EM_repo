@@ -1,0 +1,62 @@
+"""inverse design of a photonic array for far-field direction emission
+Find the optimal design variables (waveguide widths) that maximize the diffraction"""
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+# Define the function to optimize
+def objective(x, wavelength, n_eff, grating_period):
+    """
+    x: array of design variables (e.g., waveguide widths)
+    wavelength: operating wavelength (in microns)
+    n_eff: effective refractive index of waveguide
+    grating_period: period of the grating
+    """
+    # Calculate the effective index of the waveguide array
+    n_eff_eff = np.sum(x) / len(x) * n_eff
+    
+    # Calculate the diffraction efficiency of the grating
+    k = 2 * np.pi / wavelength
+    theta_i = np.arcsin(n_eff / n_eff_eff)
+    theta_r = np.arcsin(np.sin(theta_i) - k * grating_period * np.sum(x) / wavelength)
+    eta = (np.cos(theta_i - theta_r) - np.sqrt(n_eff_eff ** 2 - n_eff ** 2) / n_eff_eff * np.cos(theta_i)) ** 2
+    
+    # Return the negative of the diffraction efficiency (since we are maximizing)
+    return -eta
+
+# Define the initial design variables (e.g., waveguide widths)
+x0 = np.array([1, 1, 1, 1, 1])
+
+# Define the operating wavelength (in microns)
+wavelength = 1.55
+
+# Define the effective refractive index of the waveguide
+n_eff = 3.2
+
+# Define the period of the grating
+grating_period = 1.0
+
+# Minimize the objective function
+result = minimize(objective, x0, args=(wavelength, n_eff, grating_period))
+
+# Print the optimized design variables
+print("Optimized design variables:")
+print(result.x)
+
+# Plot the far-field pattern of the grating
+k = 2 * np.pi / wavelength
+theta_i = np.arcsin(n_eff / np.sum(result.x) * len(result.x))
+theta = np.linspace(-np.pi/2, np.pi/2, 1000)
+phi = np.linspace(0, 2*np.pi, 1000)
+theta_mesh, phi_mesh = np.meshgrid(theta, phi)
+k_x = k * np.sin(theta_mesh) * np.cos(phi_mesh)
+k_y = k * np.sin(theta_mesh) * np.sin(phi_mesh)
+k_z = k * np.cos(theta_mesh)
+eta = (np.cos(theta_i - np.arcsin(k_z * n_eff / k)) - np.sqrt(result.x.sum() * n_eff ** 2 - n_eff ** 2) / (result.x.sum() * n_eff) * np.cos(theta_i)) ** 2
+far_field = np.abs(np.sum(result.x * np.exp(-1j * k_x * grating_period * np.arange(len(result.x))) * eta, axis=1)) ** 2
+plt.pcolormesh(phi_mesh, theta_mesh, far_field, shading='nearest')
+plt.xlabel("Azimuthal angle (radians)")
+plt.ylabel("Polar angle (radians)")
+plt.colorbar()
+plt.show()

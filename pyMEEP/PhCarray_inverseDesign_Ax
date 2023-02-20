@@ -1,0 +1,75 @@
+"""inverse design of a photonic array for directional emission in the far field using the Ax library"""
+
+import meep as mp
+import numpy as np
+import ax
+
+# Define the objective function to optimize
+def objective(hyperparameters):
+    # Define the photonic array geometry and the simulation parameters
+    wavelength = hyperparameters['wavelength']
+    radius = hyperparameters['radius']
+    period = hyperparameters['period']
+    thickness = hyperparameters['thickness']
+    r = radius / period
+
+    geometry = [mp.Cylinder(radius=radius, height=thickness, material=mp.Medium(index=1.5))]
+    cell = mp.Vector3(period, period, 0)
+
+    # Define the k-vector and the frequency
+    k = np.array([0, 0, 2 * np.pi / wavelength])
+    fcen = 1 / wavelength
+
+    # Define the sources and the simulation region
+    sources = [mp.Source(mp.ContinuousSource(frequency=fcen, width=20),
+                          component=mp.Ez,
+                          center=mp.Vector3(),
+                          amplitude=1,
+                          size=mp.Vector3(period, period, 0))]
+
+    sim = mp.Simulation(cell_size=cell,
+                        geometry=geometry,
+                        sources=sources,
+                        resolution=100,
+                        boundary_layers=[mp.PML(thickness / 2)])
+
+    # Run the simulation and calculate the far field pattern
+    sim.run(until_after_sources=mp.stop_when_fields_decayed(50, mp.Ez, mp.Vector3(), 1e-3))
+    farfield = sim.get_farfield(nearfield_resolution=100,
+                                 farfield_resolution=100,
+                                 center=mp.Vector3(),
+                                 size=mp.Vector3(),
+                                 E=mp.Vector3(0, 0, 1),
+                                 d=mp.Vector3(np.sin(np.deg2rad(45)), 0, np.cos(np.deg2rad(45))))
+
+    # Calculate the directivity
+    total_flux = farfield.intensity.sum()
+    directivity = farfield.intensity.max() / total_flux
+
+    return {'directivity': directivity}
+
+# Define the hyperparameters to be optimized and their search space using the Ax library
+parameters = [
+    {"name": "wavelength", "type": "range", "bounds": [0.4, 0.8]},
+    {"name": "radius", "type": "range", "bounds": [0.1, 0.3]},
+    {"name": "period", "type": "range", "bounds": [0.5, 1.0]},
+    {"name": "thickness", "type": "range", "bounds": [0.1, 0.2]}
+]
+
+experiment = ax.Experiment(
+    name="photonic_array",
+    search_space=ax.SearchSpace(parameters),
+    objective=ax.Objective(name="directivity", maximize=True),
+)
+
+# Run the optimization loop using the Ax library
+for i in range(20):
+    # Generate a new set of hyperparameters using the Bayesian optimization algorithm
+    parameters, trial_index = experiment.new_trial()
+
+    # Evaluate the objective function with the new hyperparameters
+    hyperparameters = parameters.mapping
+    evaluation = objective(hyperparameters)
+
+    # Report the evaluation to Ax
+    experiment.complete_trial(tr
